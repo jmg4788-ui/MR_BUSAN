@@ -258,9 +258,40 @@
         const todoInput = document.getElementById('todo-input');
         const todoList = document.getElementById('todo-list');
 
-        // 할 일 목록을 담는 데이터 배열 (새로고침 전까지 메모리에서 유지)
-        // 리스트의 요소 객체 구조: { id: 숫자, text: "문자열", completed: true/false }
-        let todos = [];
+        // localStorage 키 정의
+        const STORAGE_KEY = 'simple_todos';
+
+        // 안전하게 localStorage에서 데이터 불러오기
+        function loadTodos() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) {
+                        return parsed;
+                    }
+                }
+            } catch (error) {
+                console.error("로컬 스토리지 데이터 로드 실패 (초기화):", error);
+                // 파싱할 수 없는 깨진 데이터가 들어있는 경우 리셋
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                } catch (e) {}
+            }
+            return [];
+        }
+
+        // 안전하게 localStorage에 데이터 저장하기
+        function saveTodos() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+            } catch (error) {
+                console.error("로컬 스토리지 저장 실패:", error);
+            }
+        }
+
+        // 할 일 목록 데이터 배열을 스토리지에서 안전하게 읽어옵니다.
+        let todos = loadTodos();
 
         // 1. 할 일 추가 기능
         function addTodo(text) {
@@ -270,7 +301,7 @@
             // 고유 ID는 중복을 피하기 위해 현재 시간값(밀리초)을 사용합니다.
             const newTodo = {
                 id: Date.now(),
-                text: text,
+                text: text.trim(),
                 completed: false
             };
 
@@ -280,7 +311,8 @@
             // 입력창 비우기
             todoInput.value = '';
 
-            // 변경된 상태를 화면에 다시 그려줍니다.
+            // 로컬 스토리지 동기화 및 렌더링
+            saveTodos();
             renderTodos();
         }
 
@@ -294,7 +326,8 @@
                 return todo;
             });
 
-            // 변경된 상태를 화면에 다시 그려줍니다.
+            // 로컬 스토리지 동기화 및 렌더링
+            saveTodos();
             renderTodos();
         }
 
@@ -303,7 +336,8 @@
             // filter() 함수를 사용하여 클릭된 id와 다른 할 일만 새로운 배열로 남깁니다. (결과적으로 해당 id 요소만 제외됨)
             todos = todos.filter(todo => todo.id !== id);
 
-            // 변경된 상태를 화면에 다시 그려줍니다.
+            // 로컬 스토리지 동기화 및 렌더링
+            saveTodos();
             renderTodos();
         }
 

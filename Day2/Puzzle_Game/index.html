@@ -627,6 +627,12 @@
       update_attempt_count();
       board_locked = true;
 
+      // 두 카드 객체의 참조 정합성 예외 방어
+      if (!first_card || !second_card) {
+        reset_selected_cards();
+        return;
+      }
+
       if (compare_cards()) {
         handle_matched_pair();
         return;
@@ -636,8 +642,9 @@
     }
 
     function handle_card_click(card_element) {
-      // 게임 진행이 아니거나, 이미 맞춘 카드, 같은 카드 재클릭, 비교 중인 상태는 무시합니다.
-      if (!game_active || board_locked || card_element === first_card || card_element.classList.contains("matched")) {
+      // 게임 진행이 아니거나, 이미 맞춘 카드, 같은 카드 재클릭, 이미 뒤집힌 카드, 비교 중인 상태(보드 락)는 무시합니다.
+      if (!game_active || board_locked || card_element === first_card || 
+          card_element.classList.contains("matched") || card_element.classList.contains("flipped")) {
         return;
       }
 
@@ -654,17 +661,20 @@
     }
 
     function create_card_element(emoji) {
+      // 안전한 폴백(Fallback) 처리: 이모지가 정의되지 않았을 경우 물음표로 대체
+      const safe_emoji = emoji || "❓";
+
       // 카드 1장을 버튼 요소로 만듭니다.
       const card_element = document.createElement("button");
       card_element.type = "button";
       card_element.className = "card";
-      card_element.dataset.value = emoji;
+      card_element.dataset.value = safe_emoji;
       card_element.setAttribute("aria-label", "카드");
 
       // 카드 안에 실제로 보여줄 그림을 넣습니다.
       const emoji_element = document.createElement("span");
       emoji_element.className = "emoji";
-      emoji_element.textContent = emoji;
+      emoji_element.textContent = safe_emoji;
 
       card_element.appendChild(emoji_element);
       card_element.addEventListener("click", () => handle_card_click(card_element));
@@ -727,6 +737,12 @@
       if (level_transition_timeout) {
         clearTimeout(level_transition_timeout);
         level_transition_timeout = null;
+      }
+
+      // 작동 중인 인터벌 타이머가 있다면 초기화하여 중복 발생 방지
+      if (timer_interval) {
+        clearInterval(timer_interval);
+        timer_interval = null;
       }
 
       // 게임 상태를 처음으로 되돌립니다.

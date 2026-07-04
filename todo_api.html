@@ -321,27 +321,52 @@
             padding: 40px 0;
             font-size: 0.95rem;
             font-weight: 500;
+               @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 토스트 알림 디자인 */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
             display: flex;
             flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast {
+            background-color: rgba(30, 41, 59, 0.95);
+            color: var(--text-main);
+            padding: 14px 22px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+            display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        /* 키프레임 애니메이션 */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .toast.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
         }
     </style>
 </head>
@@ -373,7 +398,7 @@
                 autocomplete="off"
                 required
             >
-            <button type="submit" class="add-button">
+            <button type="submit" id="add-button" class="add-button">
                 <span>추가</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -388,23 +413,73 @@
         </ul>
     </div>
 
+    <!-- 토스트 컨테이너 -->
+    <div id="toast-container" class="toast-container"></div>
+
     <script>
         const todoForm = document.getElementById('todo-form');
         const todoInput = document.getElementById('todo-input');
         const todoList = document.getElementById('todo-list');
+        const addButton = document.getElementById('add-button');
         const progressContainer = document.getElementById('progress-container');
         const progressPercent = document.getElementById('progress-percent');
         const progressBarFill = document.getElementById('progress-bar-fill');
         const statsText = document.getElementById('stats-text');
+        const toastContainer = document.getElementById('toast-container');
 
         // FastAPI 백엔드 서버의 API 기본 URL (동적 포트 바인딩 지원)
         const API_URL = window.location.port === '8000' ? '/todos' : 'http://127.0.0.1:8000/todos';
+
+        // 전역 요청 펜딩 락 상태
+        let isRequestPending = false;
+
+        // UI 활성화/비활성화 및 중복 전송(Double Submit) 방어 처리
+        function setRequestPending(pending) {
+            isRequestPending = pending;
+            todoInput.disabled = pending;
+            addButton.disabled = pending;
+            
+            // 리스트 내의 체크박스들과 삭제 버튼 비활성화 제어
+            const actionElements = todoList.querySelectorAll('.todo-content, .delete-button');
+            actionElements.forEach(el => {
+                if (pending) {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.6';
+                } else {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                }
+            });
+        }
+
+        // 토스트 알림 유틸리티 함수
+        function showToast(message, type = 'error') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'error' ? '⚠️' : '✨';
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            
+            toastContainer.appendChild(toast);
+            
+            // 마이크로초 딜레이 뒤 클래스 부여하여 슬라이드 애니메이션 적용
+            setTimeout(() => toast.classList.add('show'), 50);
+            
+            // 3초 후 토스트 제거
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
 
         // 1. [조회 - GET] 서버에서 할 일 목록을 받아와 화면을 그려주는 함수
         async function fetchTodos() {
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('API 응답에 오류가 발생했습니다.');
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'API 응답에 오류가 발생했습니다.');
+                }
                 
                 const todos = await response.json();
                 renderTodos(todos);
@@ -417,13 +492,15 @@
                         <span style="font-size: 0.8rem; opacity: 0.8; margin-top: 4px;">FastAPI 서버(port 8000)가 정상 작동하는지 확인하세요.</span>
                     </li>
                 `;
+                showToast('백엔드 서버와 통신할 수 없습니다. 연결 상태를 확인해 주세요.');
             }
         }
 
         // 2. [추가 - POST] 서버에 새로운 할 일을 등록하는 함수
         async function addTodo(text) {
-            if (text.trim() === '') return;
+            if (text.trim() === '' || isRequestPending) return;
 
+            setRequestPending(true);
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -435,42 +512,67 @@
 
                 if (response.ok) {
                     todoInput.value = ''; // 성공 시 입력창 비우기
-                    fetchTodos(); // 최신 목록을 다시 렌더링
+                    showToast('성공적으로 추가되었습니다.', 'success');
+                    await fetchTodos(); // 최신 목록 다시 로드
                 } else {
-                    alert('등록에 실패했습니다.');
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || '할 일 등록에 실패했습니다.');
                 }
             } catch (error) {
                 console.error('서버 추가 오류:', error);
+                showToast(error.message || '할 일 추가 중 문제가 발생했습니다.');
+            } finally {
+                setRequestPending(false);
             }
         }
 
         // 3. [상태 변경 - PUT] 특정 할 일의 완료 여부를 토글(반전)시키는 함수
         async function toggleTodo(id) {
+            if (isRequestPending) return;
+
+            setRequestPending(true);
             try {
                 const response = await fetch(`${API_URL}/${id}`, {
                     method: 'PUT'
                 });
 
                 if (response.ok) {
-                    fetchTodos(); // 최신 목록을 다시 렌더링
+                    showToast('상태가 변경되었습니다.', 'success');
+                    await fetchTodos();
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || '상태 변경에 실패했습니다.');
                 }
             } catch (error) {
                 console.error('서버 수정 오류:', error);
+                showToast(error.message || '상태 수정 중 문제가 발생했습니다.');
+            } finally {
+                setRequestPending(false);
             }
         }
 
         // 4. [삭제 - DELETE] 특정 할 일을 삭제하는 함수
         async function deleteTodo(id) {
+            if (isRequestPending) return;
+
+            setRequestPending(true);
             try {
                 const response = await fetch(`${API_URL}/${id}`, {
                     method: 'DELETE'
                 });
 
                 if (response.ok) {
-                    fetchTodos(); // 최신 목록을 다시 렌더링
+                    showToast('삭제되었습니다.', 'success');
+                    await fetchTodos();
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || '할 일 삭제에 실패했습니다.');
                 }
             } catch (error) {
                 console.error('서버 삭제 오류:', error);
+                showToast(error.message || '할 일 삭제 중 문제가 발생했습니다.');
+            } finally {
+                setRequestPending(false);
             }
         }
 
