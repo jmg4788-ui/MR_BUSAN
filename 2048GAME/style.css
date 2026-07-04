@@ -1,0 +1,851 @@
+/* ==========================================================================
+   Premium 2048 Design System - Fairy Tale Pastel Theme
+   ========================================================================== */
+
+/* 1. Global Reset & Variables */
+:root {
+  /* Pastel Palette for Tiles */
+  --color-2: #ffe5ec;
+  /* Baby Pink */
+  --color-4: #e8f0fe;
+  /* Pastel Blue-Gray */
+  --color-8: #e6fffa;
+  /* Light Mint */
+  --color-16: #f0fdf4;
+  /* Soft Sage Green */
+  --color-32: #fef9c3;
+  /* Pale Yellow */
+  --color-64: #ffedd5;
+  /* Creamy Peach */
+  --color-128: #fee2e2;
+  /* Warm Rose */
+  --color-256: #f3e8ff;
+  /* Soft Lavender */
+  --color-512: #fae8ff;
+  /* Sweet Orchid */
+  --color-1024: #e0f2fe;
+  /* Sky Blue */
+  --color-2048: #fef08a;
+  /* Marshmallow Gold */
+
+  /* Theme Colors */
+  --bg-deep: #f3f4f6;
+  --bg-gradient: linear-gradient(135deg, #ffd1ff 0%, #fad0c4 30%, #fbc2eb 70%, #a1c4fd 100%);
+  --panel-bg: rgba(255, 255, 255, 0.45);
+  --panel-border: rgba(255, 255, 255, 0.6);
+  --text-primary: #5c5270;
+  /* Cozy Deep Violet-Gray */
+  --text-secondary: #7e7495;
+  /* Soft Medium Violet-Gray */
+  --text-dim: #a69dbb;
+  /* Pale Violet-Gray */
+
+  /* Grid Settings */
+  --board-width: 480px;
+  --grid-gap: 14px;
+  --tile-size: calc((var(--board-width) - (var(--grid-gap) * 5)) / 4);
+
+  /* Font Family */
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  background: var(--bg-deep);
+  background-image: var(--bg-gradient);
+  background-size: 400% 400%;
+  animation: bg-pan-fairy 30s ease infinite;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Cotton candy sky slow animation */
+@keyframes bg-pan-fairy {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Floating warm cloud shapes in background */
+.stars-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.5) 20%, transparent 20%),
+    radial-gradient(rgba(255, 255, 255, 0.3) 15%, transparent 20%);
+  background-size: 120px 120px;
+  background-position: 0 0, 60px 60px;
+  opacity: 0.4;
+  z-index: 0;
+  pointer-events: none;
+  animation: float-clouds 40s linear infinite;
+}
+
+@keyframes float-clouds {
+  from {
+    background-position: 0 0, 60px 60px;
+  }
+
+  to {
+    background-position: 240px 120px, 300px 180px;
+  }
+}
+
+/* 2. Layout Container */
+.game-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  max-width: 520px;
+  padding: 20px;
+}
+
+/* Demo Controller (Fairy Tale style) */
+.demo-controller {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px dashed var(--text-dim);
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.btn-demo {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--panel-border);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.btn-demo:hover {
+  background: #fff;
+  transform: scale(1.05);
+}
+
+.btn-demo.active {
+  background: #8ec5fc;
+  color: #fff;
+  border-color: #8ec5fc;
+  box-shadow: 0 2px 8px rgba(142, 197, 252, 0.4);
+}
+
+/* 3. Game Header & Scoreboard */
+.game-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  text-shadow: 0 2px 4px rgba(92, 82, 112, 0.1);
+}
+
+.logo-title .highlight {
+  font-weight: 800;
+  color: #fbc2eb;
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(161, 196, 253, 0.2));
+}
+
+.logo-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.scores-container {
+  display: flex;
+  gap: 10px;
+}
+
+.score-box {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 8px 16px;
+  min-width: 80px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.score-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.score-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* Score Addition Floating Animation */
+.score-addition {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #c084fc;
+  text-shadow: 0 2px 5px rgba(192, 132, 252, 0.4);
+  animation: float-up-fade 850ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes float-up-fade {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -35px);
+    opacity: 0;
+  }
+}
+
+/* 4. Controls & Panel Buttons */
+.control-panel {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-buttons,
+.utility-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Base button glass styling */
+.btn {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 200ms ease;
+  stroke: var(--text-secondary);
+}
+
+/* Button Hover Interaction */
+.btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Specific buttons styled with Cozy Pastel Aura */
+#btn-undo:hover {
+  border-color: #ffd1ff;
+  color: #c084fc;
+}
+
+#btn-undo:hover .btn-icon {
+  transform: rotate(-45deg);
+  stroke: #c084fc;
+}
+
+#btn-shuffle:hover {
+  border-color: #fad0c4;
+  color: #f78da7;
+}
+
+#btn-shuffle:hover .btn-icon {
+  transform: rotate(90deg);
+  stroke: #f78da7;
+}
+
+#btn-swap:hover {
+  border-color: #a1c4fd;
+  color: #0070f3;
+}
+
+#btn-swap:hover .btn-icon {
+  transform: scale(1.15);
+  stroke: #0070f3;
+}
+
+#btn-ranking:hover {
+  border-color: #fef08a;
+  color: #d97706;
+}
+
+#btn-ranking:hover .btn-icon {
+  transform: rotate(360deg);
+  stroke: #d97706;
+}
+
+/* Highlighted (New Game) CTA Button */
+.btn-highlight {
+  background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  font-weight: 800;
+  color: #3b74ca;
+}
+
+.btn-highlight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(161, 196, 253, 0.4);
+  filter: brightness(1.02);
+}
+
+/* 5. Main Game Board & Grids */
+.game-container {
+  width: var(--board-width);
+  height: var(--board-width);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: 24px;
+  position: relative;
+  padding: var(--grid-gap);
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.05),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+/* Background grid framework */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--grid-gap);
+  width: 100%;
+  height: 100%;
+}
+
+.grid-cell {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 6. Dynamic Tile System */
+.tile-container {
+  position: absolute;
+  top: var(--grid-gap);
+  left: var(--grid-gap);
+  right: var(--grid-gap);
+  bottom: var(--grid-gap);
+  pointer-events: none;
+}
+
+/* Tile Positioning Engine (CSS Custom Properties) */
+.tile {
+  position: absolute;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  border-radius: 16px;
+  transition: transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: translate(calc(var(--x) * (var(--tile-size) + var(--grid-gap))),
+      calc(var(--y) * (var(--tile-size) + var(--grid-gap))));
+}
+
+/* 스왑 모드 전용 스타일 */
+.swap-mode .tile-container {
+  pointer-events: auto;
+}
+.swap-mode .tile {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.swap-mode .tile:hover .tile-inner {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(92, 82, 112, 0.12);
+}
+
+/* 스왑 모드 선택 타일 하이라이트 */
+.tile-selected .tile-inner {
+  outline: 3px solid #fef08a; /* 파스텔 골드 테두리 */
+  outline-offset: -3px;
+  animation: swap-pulse 1s infinite alternate;
+}
+
+@keyframes swap-pulse {
+  0% { box-shadow: 0 0 5px rgba(254, 240, 138, 0.4); }
+  100% { box-shadow: 0 0 18px rgba(254, 240, 138, 0.8); }
+}
+
+.tile-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.2rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  animation: pop-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 병합 시 순간적으로 살짝 커졌다 돌아오는 애니메이션 */
+.tile-merged .tile-inner {
+  animation: tile-merge-pop 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tile-merge-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Cozy Pastel Tile Styling */
+.tile-2 .tile-inner {
+  background: var(--color-2);
+  color: #df5a7a;
+}
+
+.tile-4 .tile-inner {
+  background: var(--color-4);
+  color: #3b74ca;
+}
+
+.tile-8 .tile-inner {
+  background: var(--color-8);
+  color: #0b9380;
+}
+
+.tile-16 .tile-inner {
+  background: var(--color-16);
+  color: #1e7041;
+}
+
+.tile-32 .tile-inner {
+  background: var(--color-32);
+  color: #b28800;
+}
+
+.tile-64 .tile-inner {
+  background: var(--color-64);
+  color: #ca653b;
+}
+
+.tile-128 .tile-inner {
+  background: var(--color-128);
+  color: #d33838;
+}
+
+.tile-256 .tile-inner {
+  background: var(--color-256);
+  color: #7c3aed;
+}
+
+.tile-512 .tile-inner {
+  background: var(--color-512);
+  color: #a21caf;
+}
+
+.tile-1024 .tile-inner {
+  background: var(--color-1024);
+  color: #0369a1;
+}
+
+/* 2048 - Marshmallow Gold */
+.tile-2048 .tile-inner {
+  background: var(--color-2048);
+  color: #b45309;
+  box-shadow: 0 4px 15px rgba(254, 240, 138, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.8);
+  animation: pulse-soft-gold 2s infinite alternate, pop-in 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pulse-soft-gold {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 10px rgba(254, 240, 138, 0.4);
+  }
+
+  100% {
+    transform: scale(1.03);
+    box-shadow: 0 6px 20px rgba(254, 240, 138, 0.8);
+  }
+}
+
+/* Super Tile (4096+) Pastel Rainbow */
+.tile-super .tile-inner {
+  background: linear-gradient(135deg, #fbcfe8, #c084fc, #a5b4fc);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 15px rgba(192, 132, 252, 0.4);
+  animation: pulse-soft-super 1.5s infinite alternate, pop-in 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pulse-soft-super {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 10px rgba(192, 132, 252, 0.3);
+  }
+
+  100% {
+    transform: scale(1.03);
+    box-shadow: 0 8px 25px rgba(192, 132, 252, 0.7);
+  }
+}
+
+/* 7. Footer Styling */
+.game-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 10px;
+}
+
+.game-footer strong {
+  color: var(--text-primary);
+}
+
+/* 8. Modal & Overlay Styles (Fairy Tale Glassmorphism) */
+.modal-overlay,
+.game-message-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(92, 82, 112, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  opacity: 1;
+  transition: opacity 300ms ease;
+}
+
+.hidden,
+.modal-overlay.hidden,
+.game-message-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  display: none !important;
+}
+
+/* Cozy Card style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 15px 35px rgba(92, 82, 112, 0.15), inset 0 0 20px rgba(255, 255, 255, 0.4);
+  width: 90%;
+  max-width: 400px;
+  overflow: hidden;
+  animation: modal-enter 350ms cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes modal-enter {
+  0% {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: color 200ms;
+}
+
+.btn-close:hover {
+  color: #ff8da7;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.ranking-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+}
+
+.rank-num {
+  font-weight: 800;
+  width: 25px;
+  color: var(--text-dim);
+}
+
+.rank-name {
+  flex-grow: 1;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rank-score {
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* Cozy Medal Styles for top 3 */
+.rank-1 {
+  border-color: rgba(254, 240, 138, 0.9);
+  background: linear-gradient(90deg, rgba(254, 240, 138, 0.25), transparent);
+}
+
+.rank-1 .rank-num {
+  color: #b45309;
+}
+
+.rank-1 .rank-name {
+  color: var(--text-primary);
+}
+
+.rank-2 {
+  border-color: rgba(142, 197, 252, 0.4);
+  background: linear-gradient(90deg, rgba(142, 197, 252, 0.15), transparent);
+}
+
+.rank-2 .rank-num {
+  color: #3b74ca;
+}
+
+.rank-3 {
+  border-color: rgba(247, 141, 167, 0.4);
+  background: linear-gradient(90deg, rgba(247, 141, 167, 0.15), transparent);
+}
+
+.rank-3 .rank-num {
+  color: #f78da7;
+}
+
+/* Game Status Overlay Inside Board */
+.game-message-overlay {
+  position: absolute;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  animation: fade-in 300ms ease forwards;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.message-content {
+  text-align: center;
+  padding: 30px;
+}
+
+.message-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ca653b;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 4px rgba(202, 101, 59, 0.1);
+}
+
+.message-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 25px;
+}
+
+/* 9. Responsive adjustments for smaller screens */
+@media screen and (max-width: 520px) {
+  :root {
+    --board-width: 320px;
+    --grid-gap: 10px;
+  }
+
+  .game-wrapper {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .logo-title {
+    font-size: 1.8rem;
+  }
+
+  .logo-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .score-box {
+    padding: 6px 10px;
+    min-width: 65px;
+  }
+
+  .score-value {
+    font-size: 1.1rem;
+  }
+
+  .btn {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .btn-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .tile-inner {
+    font-size: 1.6rem;
+  }
+
+  .tile-128 .tile-inner,
+  .tile-256 .tile-inner,
+  .tile-512 .tile-inner {
+    font-size: 1.4rem;
+  }
+
+  .tile-1024 .tile-inner,
+  .tile-2048 .tile-inner,
+  .tile-super .tile-inner {
+    font-size: 1.2rem;
+  }
+}
+
+/* 셔플 시 보드 흔들림 시각 효과 */
+@keyframes shuffle-shake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-8px, 5px) rotate(-1.5deg); }
+  40% { transform: translate(6px, -4px) rotate(1deg); }
+  60% { transform: translate(-5px, 3px) rotate(-0.8deg); }
+  80% { transform: translate(4px, -2px) rotate(0.5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
