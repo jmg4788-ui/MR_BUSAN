@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>간단한 퍼즐 게임</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --board: #b9f2c6;
+      --board-border: #9be7af;
+      --accent: #2f6fed;
+      --accent-hover: #2459c9;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.95), transparent 36%),
+        linear-gradient(180deg, #eff3fb 0%, #f6f8fc 100%);
+    }
+
+    .app {
+      width: min(100%, 430px);
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 28px 22px 20px;
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin: 10px 0 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* 난이도 선택 세그먼트 컨트롤 */
+    .difficulty-selector {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      background: #f1f3f7;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .diff-btn {
+      flex: 1;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 4px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+
+    .diff-btn:hover {
+      color: var(--text);
+    }
+
+    .diff-btn.active {
+      background: var(--card);
+      color: var(--accent);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    /* 게임 정보 통계 레이아웃 */
+    .game-stats {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stat-item {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid #f1f5f9;
+      white-space: nowrap;
+    }
+
+    .stat-item span {
+      color: var(--text);
+      margin-left: 2px;
+    }
+
+    .stat-item.score span {
+      color: var(--accent);
+    }
+
+    .stat-item.timer span {
+      color: #ef4444;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-value {
+      display: inline-block;
+      transition: transform 0.15s ease-in-out;
+    }
+
+    .pop-animation {
+      animation: pop 0.3s ease-in-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); color: #10b981; }
+      100% { transform: scale(1); }
+    }
+
+    /* 타이머 바 스타일 */
+    .timer-container {
+      width: 100%;
+      height: 8px;
+      background: #f1f3f7;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      border-radius: 4px;
+      transition: width 1s linear, background 0.5s ease;
+    }
+
+    .timer-bar.warning {
+      background: linear-gradient(90deg, #f59e0b, #ef4444);
+    }
+
+    /* 타이머 깜빡임 애니메이션 */
+    .blink-animation {
+      animation: blink 0.8s infinite alternate;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+
+    .restart {
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.15s ease;
+      box-shadow: 0 6px 14px rgba(47, 111, 237, 0.15);
+    }
+
+    .restart:hover {
+      background: var(--accent-hover);
+    }
+
+    .restart:active {
+      transform: translateY(1px);
+    }
+
+    .board {
+      display: grid;
+      gap: 8px;
+      margin: 8px 0 18px;
+    }
+
+    /* 난이도(격자 밀도)별 카드 스타일 및 크기 설정 */
+    .board.size-3 .card {
+      font-size: 34px;
+      border-radius: 18px;
+    }
+
+    .board.size-4 .card {
+      font-size: 28px;
+      border-radius: 16px;
+    }
+
+    .board.size-5 .card {
+      font-size: 22px;
+      border-radius: 12px;
+    }
+
+    .board.size-6 .card {
+      font-size: 18px;
+      border-radius: 10px;
+    }
+
+    .card {
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--board-border);
+      background: linear-gradient(180deg, #bdf5cc 0%, #abefbf 100%);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.15s ease, filter 0.2s ease, background 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.01);
+    }
+
+    .card:disabled {
+      cursor: default;
+    }
+
+    .card .emoji {
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .card.flipped,
+    .card.matched {
+      background: linear-gradient(180deg, #d4f8dd 0%, #bdf5cc 100%);
+    }
+
+    .card.flipped .emoji,
+    .card.matched .emoji {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .card.matched {
+      box-shadow: inset 0 0 0 1px rgba(47, 111, 237, 0.08);
+    }
+
+    /* 홀수 격자 중앙 보너스 슬롯 스타일 */
+    .card.center-slot {
+      background: rgba(47, 111, 237, 0.05);
+      border: 2px dashed rgba(47, 111, 237, 0.2);
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .card.center-slot .emoji {
+      opacity: 0.7 !important;
+      transform: scale(1) !important;
+    }
+
+    .message {
+      min-height: 28px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1.4;
+      color: #1f2937;
+    }
+
+    .message.done {
+      color: #1f6b34;
+    }
+
+    @media (max-width: 420px) {
+      .app {
+        padding: 22px 14px 18px;
+        border-radius: 18px;
+      }
+
+      .title {
+        font-size: 26px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+      }
+
+      .game-stats {
+        gap: 4px;
+      }
+
+      .stat-item {
+        font-size: 11px;
+        padding: 4px 6px;
+      }
+
+      .restart {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      .diff-btn {
+        font-size: 11px;
+        padding: 6px 2px;
+      }
+
+      /* 모바일 환경에서의 격자 카드 폰트 축소 */
+      .board.size-3 .card { font-size: 28px; }
+      .board.size-4 .card { font-size: 22px; }
+      .board.size-5 .card { font-size: 18px; }
+      .board.size-6 .card { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1 class="title">간단한 퍼즐 게임</h1>
+    <p class="subtitle">같은 그림 2개를 찾아 모두 맞추면 클리어입니다.</p>
+
+    <!-- 난이도 선택 버튼 그룹 -->
+    <section class="difficulty-selector" aria-label="난이도 선택">
+      <button class="diff-btn" data-size="3" type="button">쉬움 (3x3)</button>
+      <button class="diff-btn active" data-size="4" type="button">보통1 (4x4)</button>
+      <button class="diff-btn" data-size="5" type="button">보통2 (5x5)</button>
+      <button class="diff-btn" data-size="6" type="button">어려움 (6x6)</button>
+    </section>
+
+    <!-- 게임 정보 툴바 -->
+    <section class="toolbar" aria-label="게임 정보">
+      <div class="game-stats">
+        <div class="stat-item">시도 <span id="attemptCount">0</span></div>
+        <div class="stat-item score">점수 <span id="scoreValue" class="score-value">0</span></div>
+        <div class="stat-item timer">시간 <span id="timerValue">0</span>초</div>
+      </div>
+      <button class="restart" id="restartButton" type="button">다시 시작</button>
+    </section>
+
+    <!-- 타이머 프로그레스 바 -->
+    <div class="timer-container">
+      <div class="timer-bar" id="timerBar"></div>
+    </div>
+
+    <section class="board" id="board" aria-label="퍼즐 보드"></section>
+
+    <div class="message" id="message">같은 그림을 찾아서 짝을 맞춰보세요.</div>
+  </main>
+
+  <script>
+    // 맞춰야 할 그림 후보 풀입니다. (16개에서 20개로 확장하여 6x6 보드 대응)
+    const emoji_pool = [
+      "🍇", "🍓", "🥝", "🍑", "🍎", "🍉", "🍒", "🍊", "🍍", "🍌", 
+      "🍋", "🍈", "🍏", "🍐", "🥭", "🫐", "🥥", "🍅", "🥑", "🌽"
+    ];
+
+    // 화면에서 사용할 DOM 요소를 미리 찾아 둡니다.
+    const board_element = document.getElementById("board");
+    const attempt_count_element = document.getElementById("attemptCount");
+    const score_element = document.getElementById("scoreValue");
+    const timer_value_element = document.getElementById("timerValue");
+    const timer_bar_element = document.getElementById("timerBar");
+    const restart_button = document.getElementById("restartButton");
+    const message_element = document.getElementById("message");
+    const difficulty_buttons = document.querySelectorAll(".diff-btn");
+
+    // 현재 게임 상태를 저장하는 변수들입니다.
+    let first_card = null;
+    let second_card = null;
+    let board_locked = false;
+    let attempt_count = 0;
+    let matched_pairs = 0;
+    let score = 0;
+    let grid_size = 4; // 기본값: 보통1 (4x4)
+
+    // 타이머 변수
+    let timer_interval = null;
+    let time_left = 0;
+    let max_time = 0;
+    let game_active = false;
+
+    // 난이도 자동 전환 타이머 변수
+    let level_transition_timeout = null;
+
+    function shuffle_array(array) {
+      // 원본 배열은 건드리지 않기 위해 복사본을 만듭니다.
+      const shuffled_array = [...array];
+
+      // Fisher-Yates 방식으로 배열을 섞습니다.
+      for (let index = shuffled_array.length - 1; index > 0; index -= 1) {
+        const random_index = Math.floor(Math.random() * (index + 1));
+        [shuffled_array[index], shuffled_array[random_index]] = [shuffled_array[random_index], shuffled_array[index]];
+      }
+
+      return shuffled_array;
+    }
+
+    function set_message(text, is_done = false) {
+      // 하단 안내 문구를 바꾸고, 클리어 상태면 강조 스타일을 줍니다.
+      message_element.textContent = text;
+      message_element.classList.toggle("done", is_done);
+      message_element.style.color = ""; // 인라인 개별 색상 설정 초기화
+    }
+
+    function reset_selected_cards() {
+      // 한 번의 시도 처리가 끝나면 선택한 카드 정보를 초기화합니다.
+      first_card = null;
+      second_card = null;
+      board_locked = false;
+    }
+
+    // 화면에 보이는 시도 횟수를 숫자 상태와 맞춥니다.
+    function update_attempt_count() {
+      attempt_count_element.textContent = attempt_count;
+    }
+
+    // 화면에 보이는 점수를 숫자 상태와 맞춥니다.
+    function update_score() {
+      score_element.textContent = score;
+    }
+
+    // 점수가 올라갈 때 시각적 피드백 애니메이션을 실행합니다.
+    function trigger_score_pop() {
+      score_element.classList.remove("pop-animation");
+      void score_element.offsetWidth; // Reflow 트리거로 애니메이션 재시작
+      score_element.classList.add("pop-animation");
+    }
+
+    // 난이도별 최대 제한 시간 계산
+    function get_max_time() {
+      switch (grid_size) {
+        case 3: return 30; // 쉬움
+        case 4: return 60; // 보통1
+        case 5: return 90; // 보통2
+        case 6: return 120; // 어려움
+        default: return 60;
+      }
+    }
+
+    // 타이머 UI 갱신
+    function update_timer_ui() {
+      timer_value_element.textContent = time_left;
+      
+      const percentage = (time_left / max_time) * 100;
+      timer_bar_element.style.width = `${percentage}%`;
+
+      // 남은 시간이 10초 이하일 때 위험 경고 표시
+      if (time_left <= 10) {
+        timer_bar_element.classList.add("warning");
+        timer_value_element.classList.add("blink-animation");
+      } else {
+        timer_bar_element.classList.remove("warning");
+        timer_value_element.classList.remove("blink-animation");
+      }
+    }
+
+    // 타이머 시작
+    function start_timer() {
+      clearInterval(timer_interval);
+      update_timer_ui();
+      
+      timer_interval = setInterval(() => {
+        if (!game_active) {
+          clearInterval(timer_interval);
+          return;
+        }
+
+        time_left -= 1;
+        update_timer_ui();
+
+        if (time_left <= 0) {
+          handle_game_over();
+        }
+      }, 1000);
+    }
+
+    // 시간 초과 (게임오버) 처리
+    function handle_game_over() {
+      game_active = false;
+      clearInterval(timer_interval);
+
+      // 모든 카드 공개 및 입력 비활성화
+      const cards = board_element.querySelectorAll(".card:not(.center-slot)");
+      cards.forEach((card) => {
+        reveal_card(card);
+        card.disabled = true;
+      });
+
+      set_message("시간 초과! 게임 오버입니다. 다시 도전해보세요.");
+      message_element.style.color = "#ef4444"; // 게임 오버 문구 빨간색으로 변경
+    }
+
+    function mark_cards_as_matched(first_element, second_element) {
+      // 같은 그림인 카드 2장은 맞춘 상태로 고정합니다.
+      first_element.classList.add("matched");
+      second_element.classList.add("matched");
+      first_element.disabled = true;
+      second_element.disabled = true;
+      matched_pairs += 1;
+    }
+
+    // 총 필요한 카드 쌍 수 구하기
+    function get_total_pairs() {
+      return Math.floor((grid_size * grid_size) / 2);
+    }
+
+    // 모든 카드 쌍을 맞췄는지 확인합니다.
+    function is_game_clear() {
+      return matched_pairs === get_total_pairs();
+    }
+
+    // 다음 순서의 난이도 사이즈 반환
+    function get_next_grid_size() {
+      if (grid_size === 3) return 4;
+      if (grid_size === 4) return 5;
+      if (grid_size === 5) return 6;
+      return null;
+    }
+
+    // 난이도를 강제 변경하고 게임을 리셋하는 헬퍼 함수
+    function change_difficulty(new_size) {
+      grid_size = new_size;
+
+      // 난이도 세그먼트 버튼 UI의 활성상태 동기화
+      difficulty_buttons.forEach((button) => {
+        const size = parseInt(button.dataset.size, 10);
+        if (size === new_size) {
+          button.classList.add("active");
+        } else {
+          button.classList.remove("active");
+        }
+      });
+
+      reset_game();
+    }
+
+    function show_clear_message() {
+      const next_size = get_next_grid_size();
+      if (next_size) {
+        const next_label = next_size === 4 ? "보통1 (4x4)" : next_size === 5 ? "보통2 (5x5)" : "어려움 (6x6)";
+        set_message(`축하합니다! ${attempt_count}번 만에 맞췄습니다. (최종 점수: ${score}점) 3초 후 ${next_label} 난이도로 이동합니다...`, true);
+
+        // 3초 뒤 다음 난이도로 자동 이동
+        level_transition_timeout = setTimeout(() => {
+          change_difficulty(next_size);
+        }, 3000);
+      } else {
+        // 최종 단계(6x6) 클리어 시
+        set_message(`축하합니다! 최종 난이도까지 모든 단계를 완벽히 클리어했습니다! (최종 점수: ${score}점)`, true);
+      }
+    }
+
+    function reveal_card(card_element) {
+      // 카드 앞면이 보이도록 뒤집는 역할입니다.
+      card_element.classList.add("flipped");
+    }
+
+    function hide_card(card_element) {
+      // 맞지 않는 카드 두 장을 다시 뒤집는 역할입니다.
+      if (!card_element) return;
+      card_element.classList.remove("flipped");
+    }
+
+    function compare_cards() {
+      // 두 카드의 data-value가 같으면 같은 그림입니다.
+      return first_card.dataset.value === second_card.dataset.value;
+    }
+
+    function handle_matched_pair() {
+      // 같은 그림이면 카드들을 맞춘 상태로 표시하고, 점수를 올리고 턴을 초기화합니다.
+      mark_cards_as_matched(first_card, second_card);
+      score += 10;
+      update_score();
+      trigger_score_pop();
+      set_message("잘 찾았어요! 같은 그림입니다.");
+      reset_selected_cards();
+
+      if (is_game_clear()) {
+        game_active = false;
+        clearInterval(timer_interval);
+        show_clear_message();
+      }
+    }
+
+    function handle_mismatched_pair() {
+      // 다른 그림이면 잠깐 보여준 뒤 다시 뒤집습니다.
+      set_message("다른 그림입니다. 잠깐 뒤에 다시 뒤집어요.");
+
+      setTimeout(() => {
+        hide_card(first_card);
+        hide_card(second_card);
+        set_message("다시 같은 그림을 찾아보세요.");
+        reset_selected_cards();
+      }, 700);
+    }
+
+    function handle_second_selection(card_element) {
+      // 두 번째 카드를 선택했을 때 매칭 비교를 시작합니다.
+      second_card = card_element;
+      attempt_count += 1;
+      update_attempt_count();
+      board_locked = true;
+
+      if (compare_cards()) {
+        handle_matched_pair();
+        return;
+      }
+
+      handle_mismatched_pair();
+    }
+
+    function handle_card_click(card_element) {
+      // 게임 진행이 아니거나, 이미 맞춘 카드, 같은 카드 재클릭, 비교 중인 상태는 무시합니다.
+      if (!game_active || board_locked || card_element === first_card || card_element.classList.contains("matched")) {
+        return;
+      }
+
+      reveal_card(card_element);
+
+      if (!first_card) {
+        // 첫 번째 카드가 아직 없다면 지금 카드를 저장합니다.
+        first_card = card_element;
+        return;
+      }
+
+      // 두 번째 카드까지 선택되면 비교 로직으로 넘어갑니다.
+      handle_second_selection(card_element);
+    }
+
+    function create_card_element(emoji) {
+      // 카드 1장을 버튼 요소로 만듭니다.
+      const card_element = document.createElement("button");
+      card_element.type = "button";
+      card_element.className = "card";
+      card_element.dataset.value = emoji;
+      card_element.setAttribute("aria-label", "카드");
+
+      // 카드 안에 실제로 보여줄 그림을 넣습니다.
+      const emoji_element = document.createElement("span");
+      emoji_element.className = "emoji";
+      emoji_element.textContent = emoji;
+
+      card_element.appendChild(emoji_element);
+      card_element.addEventListener("click", () => handle_card_click(card_element));
+
+      return card_element;
+    }
+
+    function create_center_slot_element() {
+      // 3x3, 5x5 등 홀수 격자의 중앙에 들어갈 보너스 카드 요소 생성
+      const card_element = document.createElement("button");
+      card_element.type = "button";
+      card_element.className = "card center-slot";
+      card_element.disabled = true;
+      card_element.setAttribute("aria-label", "보너스 슬롯");
+
+      const emoji_element = document.createElement("span");
+      emoji_element.className = "emoji";
+      emoji_element.textContent = "⭐";
+
+      card_element.appendChild(emoji_element);
+      return card_element;
+    }
+
+    function render_board() {
+      const total_slots = grid_size * grid_size;
+      const num_pairs = get_total_pairs();
+      const center_index = total_slots % 2 !== 0 ? Math.floor(total_slots / 2) : -1;
+
+      // 1. 20개의 과일 후보 풀 중에서 무작위로 필요한 개수만큼 선택합니다.
+      const selected_emojis = shuffle_array(emoji_pool).slice(0, num_pairs);
+
+      // 2. 선택된 그림들을 각각 2장씩 넣어 덱을 만듭니다.
+      const deck = [...selected_emojis, ...selected_emojis];
+
+      // 3. 구성된 카드 덱을 한 번 더 무작위로 섞습니다.
+      const shuffled_deck = shuffle_array(deck);
+      
+      board_element.innerHTML = "";
+      board_element.className = "board";
+      board_element.classList.add(`size-${grid_size}`);
+      board_element.style.gridTemplateColumns = `repeat(${grid_size}, 1fr)`;
+
+      let deck_index = 0;
+      for (let i = 0; i < total_slots; i++) {
+        if (i === center_index) {
+          // 중앙 보너스 슬롯 배치
+          const center_element = create_center_slot_element();
+          board_element.appendChild(center_element);
+        } else {
+          // 일반 카드 배치
+          const emoji = shuffled_deck[deck_index++];
+          const card_element = create_card_element(emoji);
+          board_element.appendChild(card_element);
+        }
+      }
+    }
+
+    function reset_game() {
+      // 대기 중인 난이도 자동 이동 타이머가 있다면 초기화
+      if (level_transition_timeout) {
+        clearTimeout(level_transition_timeout);
+        level_transition_timeout = null;
+      }
+
+      // 게임 상태를 처음으로 되돌립니다.
+      first_card = null;
+      second_card = null;
+      board_locked = false;
+      attempt_count = 0;
+      matched_pairs = 0;
+      score = 0;
+      
+      // 제한시간 초기화 및 구동 활성화
+      max_time = get_max_time();
+      time_left = max_time;
+      game_active = true;
+
+      update_attempt_count();
+      update_score();
+      score_element.classList.remove("pop-animation");
+      
+      set_message("같은 그림을 찾아서 짝을 맞춰보세요.");
+      render_board();
+
+      // 타이머 재가동
+      start_timer();
+    }
+
+    // 난이도 선택 이벤트 설정
+    difficulty_buttons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        const selected_size = parseInt(event.currentTarget.dataset.size, 10);
+        if (selected_size === grid_size) return;
+
+        // 활성화 스타일 적용
+        difficulty_buttons.forEach((btn) => btn.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+
+        // 난이도 값 변경 후 게임 리셋
+        grid_size = selected_size;
+        reset_game();
+      });
+    });
+
+    restart_button.addEventListener("click", reset_game);
+
+    // 페이지가 열리면 바로 게임을 시작합니다.
+    reset_game();
+  </script>
+</body>
+</html>
